@@ -73,6 +73,17 @@
     ]
   },
 
+  "intent_preview": {
+    "enabled": true,
+    "dangerous_actions": true,
+    "needs_confirmation": true,
+    "actions": [
+      "pc_sleep",
+      "pc_restart",
+      "confirm_sort_downloads"
+    ]
+  },
+
   "safe_actions": [
     "open_project",
     "open_folder",

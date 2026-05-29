@@ -369,6 +369,59 @@ def action_is_dangerous(action: str) -> bool:
     return action in CONFIG.get("dangerous_actions", [])
 
 
+def describe_intent(intent: Dict[str, Any]) -> str:
+    action = str(intent.get("action", "cancel"))
+    query = str(intent.get("query", "")).strip()
+    app = str(intent.get("app", "")).strip()
+
+    descriptions = {
+        "pc_sleep": "Понял: отправить компьютер в сон.",
+        "pc_restart": "Понял: перезагрузить компьютер.",
+        "confirm_sort_downloads": "Понял: выполнить подготовленную сортировку загрузок.",
+        "prepare_sort_downloads": "Понял: подготовить план сортировки загрузок.",
+        "volume_up": f"Понял: увеличить громкость на {query or '10'} процентов.",
+        "volume_down": f"Понял: уменьшить громкость на {query or '10'} процентов.",
+        "volume_set": f"Понял: установить громкость на {query or '50'} процентов.",
+        "volume_mute": "Понял: выключить звук.",
+        "volume_unmute": "Понял: включить звук.",
+        "pc_lock": "Понял: заблокировать компьютер.",
+        "minimize_windows": "Понял: свернуть все окна.",
+        "open_project": f"Понял: открыть проект {query or '<без названия>'} через {app or 'vscode'}.",
+        "open_folder": f"Понял: открыть папку {query or '<без названия>'}.",
+        "open_app": f"Понял: открыть программу {query or '<без названия>'}.",
+        "search_files": f"Понял: найти {query or '<пустой запрос>'}.",
+    }
+    return descriptions.get(action, f"Понял действие: {action}.")
+
+
+def should_preview_intent(intent: Dict[str, Any]) -> bool:
+    preview = CONFIG.get("intent_preview", {})
+    if not preview.get("enabled", True):
+        return False
+
+    action = str(intent.get("action", "cancel"))
+    actions = preview.get("actions", [])
+    if action in actions:
+        return True
+
+    if preview.get("dangerous_actions", True) and action_is_dangerous(action):
+        return True
+
+    if preview.get("needs_confirmation", True) and bool(intent.get("needs_confirmation", False)):
+        return True
+
+    return False
+
+
+def preview_intent_if_needed(intent: Dict[str, Any]) -> None:
+    if not should_preview_intent(intent):
+        return
+
+    message = describe_intent(intent)
+    speak(message)
+    log_event("intent_preview", {"intent": intent, "message": message})
+
+
 def route_intent(intent: Dict[str, Any]) -> None:
     if ACTIONS is None:
         speak("Действия ещё не инициализированы.")
@@ -387,6 +440,8 @@ def route_intent(intent: Dict[str, Any]) -> None:
 
     if action_is_dangerous(action):
         log_event("dangerous_action_requested", intent)
+
+    preview_intent_if_needed(intent)
 
     if action == "open_project":
         ACTIONS.open_project(query=query, app=app or "vscode")
@@ -586,7 +641,10 @@ def main() -> None:
         print_doctor_report(run_doctor(CONFIG))
         return
 
-    CONFIG = load_config()
+    if DRY_RUN and args.text:
+        CONFIG = load_config_for_doctor()
+    else:
+        CONFIG = load_config()
     SPEECH = Speech(CONFIG, log_event, dry_run=DRY_RUN)
     ACTIONS = AssistantActions(
         CONFIG,

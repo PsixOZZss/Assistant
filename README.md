@@ -17,6 +17,8 @@ app\.venv\Scripts\python.exe app\assistant.py
 app\.venv\Scripts\python.exe app\assistant.py --dry-run --text "открой загрузки"
 ```
 
+На тестовом ПК без развёртывания `--dry-run --text` читает локальный `config/config.json` и не требует наличия `C:\Assistant`.
+
 Обновить индекс проектов:
 
 ```powershell
@@ -151,6 +153,7 @@ app\.venv\Scripts\python.exe app\assistant.py --dry-run --text "следующи
 ### pc_sleep / pc_restart / pc_lock / minimize_windows
 
 Управляет базовыми действиями Windows. Сон и перезагрузка требуют голосового подтверждения.
+Перед опасными действиями ассистент проговаривает, что понял, например: `Понял: перезагрузить компьютер.`
 
 Примеры:
 
@@ -180,6 +183,25 @@ CLI:
 
 ```powershell
 app\.venv\Scripts\python.exe app\assistant.py --dry-run --text "статус ассистента"
+```
+
+### intent_preview
+
+`intent_preview` в `config/config.json` управляет тем, когда ассистент проговаривает распознанное намерение перед выполнением.
+
+По умолчанию preview включён для опасных действий и команд с подтверждением:
+
+```json
+"intent_preview": {
+  "enabled": true,
+  "dangerous_actions": true,
+  "needs_confirmation": true,
+  "actions": [
+    "pc_sleep",
+    "pc_restart",
+    "confirm_sort_downloads"
+  ]
+}
 ```
 
 ### search_files

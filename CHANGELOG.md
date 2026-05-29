@@ -4,6 +4,11 @@
 
 ## Unreleased
 
+- Добавлен `intent_preview`: ассистент проговаривает распознанное намерение перед опасными действиями и подтверждениями.
+- `--dry-run --text` на тестовом ПК использует локальный `config/config.json` и не требует создания `C:\Assistant`.
+
+## 2026-05-29 - Diagnostics And Status
+
 - Добавлена диагностика окружения `--doctor`.
 - Улучшено управление громкостью: `volume_set`, `volume_mute`, `volume_unmute`, максимум, половина и живые fallback-фразы.
 - Добавлена команда `assistant_status`.

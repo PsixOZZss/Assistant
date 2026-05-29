@@ -54,6 +54,16 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "yes_phrases": ["да", "подтверждаю", "выполняй", "согласен", "разрешаю", "окей", "давай", "можно"],
         "no_phrases": ["нет", "отмена", "отмени", "не надо", "стоп", "нельзя", "не выполняй"],
     },
+    "intent_preview": {
+        "enabled": True,
+        "dangerous_actions": True,
+        "needs_confirmation": True,
+        "actions": [
+            "pc_sleep",
+            "pc_restart",
+            "confirm_sort_downloads",
+        ],
+    },
     "safe_actions": [
         "open_project",
         "open_folder",
