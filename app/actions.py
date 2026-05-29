@@ -1,5 +1,7 @@
 import os
 import csv
+import ctypes
+import re
 import shutil
 import subprocess
 from datetime import datetime
@@ -54,6 +56,13 @@ def safe_note_filename(name: str) -> str:
     return cleaned or "Untitled"
 
 
+def first_int(text: str, default: int = 10) -> int:
+    match = re.search(r"\d+", text or "")
+    if not match:
+        return default
+    return max(0, min(100, int(match.group(0))))
+
+
 class AssistantActions:
     def __init__(
         self,
@@ -76,6 +85,123 @@ class AssistantActions:
         self.clear_pending_action = clear_pending_action
         self.ask_voice_confirmation = ask_voice_confirmation
         self.save_config = save_config
+
+    def change_volume(self, direction: str, amount_text: str = "") -> None:
+        amount = first_int(amount_text, default=10)
+        direction = (direction or "").lower().strip()
+        if direction not in ["up", "down"]:
+            self.speak("Не понял, громкость нужно увеличить или уменьшить.")
+            return
+
+        if self.dry_run:
+            self.speak(f"Dry-run: изменил бы громкость на {amount} процентов.")
+            return
+
+        try:
+            from ctypes import POINTER, cast
+
+            from comtypes import CLSCTX_ALL
+            from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
+
+            devices = AudioUtilities.GetSpeakers()
+            interface = devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
+            volume = cast(interface, POINTER(IAudioEndpointVolume))
+            current = float(volume.GetMasterVolumeLevelScalar())
+            delta = amount / 100
+            target = current + delta if direction == "up" else current - delta
+            target = max(0.0, min(1.0, target))
+            volume.SetMasterVolumeLevelScalar(target, None)
+            percent = round(target * 100)
+            self.speak(f"Громкость {percent} процентов.")
+            self.log_event("volume_change", {"direction": direction, "amount": amount, "target": percent})
+        except Exception as exc:
+            self.speak("Не получилось изменить громкость. Проверь, установлен ли pycaw.")
+            print("[VOLUME ERROR]", exc)
+
+    def send_media_key(self, key: str) -> None:
+        app_commands = {
+            "pause": 47,
+            "play": 46,
+            "next": 11,
+            "previous": 12,
+        }
+        key = (key or "").lower().strip()
+        command = app_commands.get(key)
+        if command is None:
+            self.speak("Не понял медиакоманду.")
+            return
+
+        if self.dry_run:
+            self.speak(f"Dry-run: нажал бы медиаклавишу {key}.")
+            return
+
+        try:
+            user32 = ctypes.windll.user32
+            user32.SendMessageW(0xFFFF, 0x0319, 0, command << 16)
+            labels = {
+                "pause": "Пауза.",
+                "play": "Продолжаю.",
+                "next": "Следующий.",
+                "previous": "Назад.",
+            }
+            self.speak(labels.get(key, "Готово."))
+            self.log_event("media_key", {"key": key})
+        except Exception as exc:
+            self.speak("Не получилось отправить медиаклавишу.")
+            print("[MEDIA KEY ERROR]", exc)
+
+    def pc_sleep(self) -> None:
+        if self.dry_run:
+            self.speak("Dry-run: отправил бы ПК в сон.")
+            return
+        if not self.ask_voice_confirmation("Я собираюсь отправить компьютер в сон. Подтвердить?"):
+            return
+        try:
+            subprocess.Popen(["rundll32.exe", "powrprof.dll,SetSuspendState", "0,1,0"])
+            self.log_event("pc_sleep", {})
+        except Exception as exc:
+            self.speak("Не получилось отправить компьютер в сон.")
+            print("[PC SLEEP ERROR]", exc)
+
+    def pc_restart(self) -> None:
+        if self.dry_run:
+            self.speak("Dry-run: выполнил бы перезагрузку.")
+            return
+        if not self.ask_voice_confirmation("Я собираюсь перезагрузить компьютер. Подтвердить?"):
+            return
+        try:
+            subprocess.Popen(["shutdown", "/r", "/t", "0"])
+            self.log_event("pc_restart", {})
+        except Exception as exc:
+            self.speak("Не получилось перезагрузить компьютер.")
+            print("[PC RESTART ERROR]", exc)
+
+    def pc_lock(self) -> None:
+        if self.dry_run:
+            self.speak("Dry-run: заблокировал бы компьютер.")
+            return
+        try:
+            ctypes.windll.user32.LockWorkStation()
+            self.log_event("pc_lock", {})
+        except Exception as exc:
+            self.speak("Не получилось заблокировать компьютер.")
+            print("[PC LOCK ERROR]", exc)
+
+    def minimize_windows(self) -> None:
+        if self.dry_run:
+            self.speak("Dry-run: свернул бы все окна.")
+            return
+        try:
+            subprocess.Popen(
+                ["powershell", "-NoProfile", "-Command", "(New-Object -ComObject Shell.Application).MinimizeAll()"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            self.speak("Свернул все окна.")
+            self.log_event("minimize_windows", {})
+        except Exception as exc:
+            self.speak("Не получилось свернуть окна.")
+            print("[MINIMIZE WINDOWS ERROR]", exc)
 
     def note_dir_for_type(self, note_type: str) -> Path:
         obsidian = self.obsidian_config()

@@ -64,9 +64,41 @@ def ollama_chat_json(
 def fallback_intent_parse(text: str) -> Dict[str, Any]:
     """Локальные правила на случай, если Ollama недоступна."""
     t = text.lower().strip()
+    amount_match = re.search(r"\d+", t)
+    amount = amount_match.group(0) if amount_match else "10"
 
-    if any(word in t for word in ["отмена", "отмени", "стоп", "не надо"]):
+    if any(word in t for word in ["отмена", "отмени", "не надо"]):
         return {"action": "cancel", "query": "", "app": "", "needs_confirmation": False, "reason": "fallback cancel"}
+
+    if any(phrase in t for phrase in ["громче", "увеличь громкость", "прибавь громкость", "сделай громче"]):
+        return {"action": "volume_up", "query": amount, "app": "", "needs_confirmation": False, "reason": "fallback volume up"}
+
+    if any(phrase in t for phrase in ["тише", "уменьши громкость", "убавь громкость", "сделай тише"]):
+        return {"action": "volume_down", "query": amount, "app": "", "needs_confirmation": False, "reason": "fallback volume down"}
+
+    if any(phrase in t for phrase in ["пауза", "поставь на паузу", "останови воспроизведение", "стоп"]):
+        return {"action": "media_pause", "query": "", "app": "", "needs_confirmation": False, "reason": "fallback media pause"}
+
+    if any(phrase in t for phrase in ["продолжай", "продолжить", "возобнови", "воспроизведение"]):
+        return {"action": "media_play", "query": "", "app": "", "needs_confirmation": False, "reason": "fallback media play"}
+
+    if any(phrase in t for phrase in ["дальше", "следующий", "следующий клип", "следующий видос", "следующий трек"]):
+        return {"action": "media_next", "query": "", "app": "", "needs_confirmation": False, "reason": "fallback media next"}
+
+    if any(phrase in t for phrase in ["назад", "предыдущий", "прошлый трек", "предыдущий трек"]):
+        return {"action": "media_previous", "query": "", "app": "", "needs_confirmation": False, "reason": "fallback media previous"}
+
+    if any(phrase in t for phrase in ["сон", "спящий режим", "усыпи компьютер", "переведи в сон"]):
+        return {"action": "pc_sleep", "query": "", "app": "", "needs_confirmation": True, "reason": "fallback pc sleep"}
+
+    if any(phrase in t for phrase in ["перезагрузка", "перезагрузи", "перезагрузи компьютер"]):
+        return {"action": "pc_restart", "query": "", "app": "", "needs_confirmation": True, "reason": "fallback pc restart"}
+
+    if any(phrase in t for phrase in ["блокировка", "заблокируй", "заблокируй компьютер", "win l", "win+l"]):
+        return {"action": "pc_lock", "query": "", "app": "", "needs_confirmation": False, "reason": "fallback pc lock"}
+
+    if any(phrase in t for phrase in ["сверни все окна", "свернуть все окна", "покажи рабочий стол", "рабочий стол"]):
+        return {"action": "minimize_windows", "query": "", "app": "", "needs_confirmation": False, "reason": "fallback minimize windows"}
 
     if "подтверж" in t and "сорт" in t:
         return {"action": "confirm_sort_downloads", "query": "загрузки", "app": "", "needs_confirmation": True, "reason": "fallback confirm sort"}
@@ -166,6 +198,16 @@ def call_ollama_for_intent(config: Dict[str, Any], text: str, log_event: LogEven
 - open_project: открыть проект через VS Code. query = название проекта.
 - open_folder: открыть папку. query = название папки, например загрузки, архив, игры, проекты.
 - open_app: открыть программу. query = название программы, например steam, браузер, obsidian, vscode.
+- volume_up: увеличить громкость. query = число процентов, по умолчанию 10.
+- volume_down: уменьшить громкость. query = число процентов, по умолчанию 10.
+- media_pause: пауза или стоп воспроизведения.
+- media_play: продолжить воспроизведение.
+- media_next: следующий клип, видос или трек.
+- media_previous: предыдущий клип, видос или трек.
+- pc_sleep: отправить ПК в сон. needs_confirmation=true.
+- pc_restart: перезагрузить ПК. needs_confirmation=true.
+- pc_lock: заблокировать ПК.
+- minimize_windows: свернуть все окна.
 - search_files: найти файлы. query = что искать.
 - disk_report: показать, что занимает место на диске.
 - storage_audit: проверить структуру хранения, роли дисков, алиасы папок и обязательные папки.
@@ -184,6 +226,7 @@ def call_ollama_for_intent(config: Dict[str, Any], text: str, log_event: LogEven
 - Никогда не возвращай действие для форматирования дисков.
 - Никогда не возвращай действие для изменения реестра или системных файлов.
 - Если пользователь просит опасное действие, верни action=cancel.
+- Сон и перезагрузка разрешены, но только с needs_confirmation=true.
 - Для сортировки загрузок сначала prepare_sort_downloads, потом confirm_sort_downloads.
 
 Примеры:
@@ -195,6 +238,24 @@ JSON: {"action":"open_app","query":"steam","app":"","needs_confirmation":false,"
 
 Фраза: "открой загрузки"
 JSON: {"action":"open_folder","query":"загрузки","app":"","needs_confirmation":false,"reason":"пользователь хочет открыть папку"}
+
+Фраза: "громче"
+JSON: {"action":"volume_up","query":"10","app":"","needs_confirmation":false,"reason":"пользователь хочет увеличить громкость на стандартный шаг"}
+
+Фраза: "тише на 25"
+JSON: {"action":"volume_down","query":"25","app":"","needs_confirmation":false,"reason":"пользователь хочет уменьшить громкость на 25 процентов"}
+
+Фраза: "пауза"
+JSON: {"action":"media_pause","query":"","app":"","needs_confirmation":false,"reason":"пользователь хочет поставить воспроизведение на паузу"}
+
+Фраза: "следующий трек"
+JSON: {"action":"media_next","query":"","app":"","needs_confirmation":false,"reason":"пользователь хочет следующий трек"}
+
+Фраза: "заблокируй компьютер"
+JSON: {"action":"pc_lock","query":"","app":"","needs_confirmation":false,"reason":"пользователь хочет заблокировать ПК"}
+
+Фраза: "перезагрузи компьютер"
+JSON: {"action":"pc_restart","query":"","app":"","needs_confirmation":true,"reason":"перезагрузка требует подтверждения"}
 
 Фраза: "разбери загрузки"
 JSON: {"action":"prepare_sort_downloads","query":"загрузки","app":"","needs_confirmation":true,"reason":"сначала нужен безопасный план сортировки"}

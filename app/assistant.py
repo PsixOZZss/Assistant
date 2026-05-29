@@ -390,6 +390,36 @@ def route_intent(intent: Dict[str, Any]) -> None:
     elif action == "open_app":
         ACTIONS.open_app(query=query)
 
+    elif action == "volume_up":
+        ACTIONS.change_volume(direction="up", amount_text=query)
+
+    elif action == "volume_down":
+        ACTIONS.change_volume(direction="down", amount_text=query)
+
+    elif action == "media_pause":
+        ACTIONS.send_media_key("pause")
+
+    elif action == "media_play":
+        ACTIONS.send_media_key("play")
+
+    elif action == "media_next":
+        ACTIONS.send_media_key("next")
+
+    elif action == "media_previous":
+        ACTIONS.send_media_key("previous")
+
+    elif action == "pc_sleep":
+        ACTIONS.pc_sleep()
+
+    elif action == "pc_restart":
+        ACTIONS.pc_restart()
+
+    elif action == "pc_lock":
+        ACTIONS.pc_lock()
+
+    elif action == "minimize_windows":
+        ACTIONS.minimize_windows()
+
     elif action == "search_files":
         ACTIONS.search_files(query=query)
 

@@ -21,7 +21,7 @@
 - Потенциально опасные действия идут через план, pending action и голосовое подтверждение.
 - Удаление файлов специально не реализуется.
 - Целевая структура на основном ПК: `C:\Assistant\app`, `config`, `models`, `logs`, `reports`, `temp`.
-- Основной стек зависимостей: `openwakeword`, `vosk`, `sounddevice`, `requests`, `rapidfuzz`, `pyttsx3`.
+- Основной стек зависимостей: `openwakeword`, `vosk`, `sounddevice`, `requests`, `rapidfuzz`, `pyttsx3`, `pycaw`, `comtypes`.
 - Диски по текущей политике: `C:` - система, программы, активные проекты, AI, knowledge; `D:` - архив, бэкапы, медиа, старые проекты; `E:` - игры, загрузки, временное, экспорты, активное медиа.
 - Тестовые голосовые сценарии MVP: открыть загрузки, открыть проект ассистента, показать что занимает место, разобрать загрузки, подтвердить сортировку.
 
@@ -103,6 +103,9 @@ gh pr create --base main --head test --title "Update assistant" --body "See summ
 - открытие папок по alias;
 - запуск приложений из allowlist;
 - поиск файлов через Everything `es.exe`;
+- управление громкостью через `pycaw`: `volume_up`, `volume_down`;
+- управление воспроизведением через Windows APPCOMMAND: `media_pause`, `media_play`, `media_next`, `media_previous`;
+- управление ПК: `pc_sleep`, `pc_restart`, `pc_lock`, `minimize_windows`;
 - отчет по большим файлам через PowerShell;
 - аудит структуры хранения;
 - подготовка плана сортировки загрузок без перемещения;
@@ -133,7 +136,7 @@ gh pr create --base main --head test --title "Update assistant" --body "See summ
 - Проверить `es.exe`.
 - Запустить ассистента голосом.
 - Проверить wake word `hey jarvis`.
-- Проверить команды: `open_folder`, `open_app`, `open_project`, `search_files`, `disk_report`, `prepare_sort_downloads`, `confirm_sort_downloads`.
+- Проверить команды: `open_folder`, `open_app`, `open_project`, `volume_up`, `volume_down`, `media_pause`, `media_play`, `media_next`, `media_previous`, `pc_lock`, `minimize_windows`, `search_files`, `disk_report`, `prepare_sort_downloads`, `confirm_sort_downloads`.
 
 ### Улучшения
 
@@ -151,5 +154,6 @@ gh pr create --base main --head test --title "Update assistant" --body "See summ
 - Не реализовывать удаление файлов напрямую.
 - Модель не должна выполнять произвольные shell-команды; только выбирать разрешенные actions.
 - Все массовые перемещения идут через план, pending action и подтверждение.
+- Сон и перезагрузка считаются опасными действиями и должны требовать подтверждение.
 - Документацию держать актуальной, чтобы этот файл оставался рабочей инструкцией по проекту.
 - При изменении команд, поведения ассистента, Git workflow, ролей ПК, roadmap или требований к окружению обновлять `AGENTS.md` и `README.md`, если эти изменения важны для будущей работы.

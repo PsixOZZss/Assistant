@@ -77,6 +77,16 @@
     "open_project",
     "open_folder",
     "open_app",
+    "volume_up",
+    "volume_down",
+    "media_pause",
+    "media_play",
+    "media_next",
+    "media_previous",
+    "pc_sleep",
+    "pc_restart",
+    "pc_lock",
+    "minimize_windows",
     "search_files",
     "disk_report",
     "storage_audit",
@@ -92,7 +102,9 @@
   ],
 
   "dangerous_actions": [
-    "confirm_sort_downloads"
+    "confirm_sort_downloads",
+    "pc_sleep",
+    "pc_restart"
   ],
 
   "pending_action_ttl_seconds": 900,

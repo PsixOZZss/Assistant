@@ -27,6 +27,20 @@ class NluFallbackTests(unittest.TestCase):
         parsed = parse_json_from_text('```json\n{"action":"cancel"}\n```')
         self.assertEqual(parsed, {"action": "cancel"})
 
+    def test_volume_down_with_amount(self) -> None:
+        intent = fallback_intent_parse("тише на 25")
+        self.assertEqual(intent["action"], "volume_down")
+        self.assertEqual(intent["query"], "25")
+
+    def test_media_next(self) -> None:
+        intent = fallback_intent_parse("следующий трек")
+        self.assertEqual(intent["action"], "media_next")
+
+    def test_pc_restart_requires_confirmation(self) -> None:
+        intent = fallback_intent_parse("перезагрузи компьютер")
+        self.assertEqual(intent["action"], "pc_restart")
+        self.assertTrue(intent["needs_confirmation"])
+
 
 if __name__ == "__main__":
     unittest.main()

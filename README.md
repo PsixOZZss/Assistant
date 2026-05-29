@@ -2,7 +2,7 @@
 
 Локальный офлайн-ассистент для Windows-ПК.
 
-Стек: openWakeWord, Vosk, Ollama `qwen3:8b`, Python router, Everything ES, VS Code CLI, PowerShell, pyttsx3.
+Стек: openWakeWord, Vosk, Ollama `qwen3:8b`, Python router, Everything ES, VS Code CLI, PowerShell, pyttsx3, pycaw.
 
 ## Запуск
 
@@ -96,6 +96,61 @@ CLI:
 
 ```powershell
 app\.venv\Scripts\python.exe app\assistant.py --dry-run --text "запусти obsidian"
+```
+
+### volume_up / volume_down
+
+Меняет системную громкость через Windows audio endpoint. По умолчанию шаг 10 процентов.
+
+Примеры:
+
+- `громче`
+- `тише`
+- `громче на 15`
+- `тише на 25`
+
+CLI:
+
+```powershell
+app\.venv\Scripts\python.exe app\assistant.py --dry-run --text "тише на 25"
+```
+
+### media_pause / media_play / media_next / media_previous
+
+Отправляет системные Windows APPCOMMAND для воспроизведения.
+
+Примеры:
+
+- `пауза`
+- `стоп`
+- `продолжай`
+- `дальше`
+- `следующий трек`
+- `следующий видос`
+- `назад`
+
+CLI:
+
+```powershell
+app\.venv\Scripts\python.exe app\assistant.py --dry-run --text "следующий трек"
+```
+
+### pc_sleep / pc_restart / pc_lock / minimize_windows
+
+Управляет базовыми действиями Windows. Сон и перезагрузка требуют голосового подтверждения.
+
+Примеры:
+
+- `сон`
+- `перезагрузи компьютер`
+- `заблокируй компьютер`
+- `сверни все окна`
+- `покажи рабочий стол`
+
+CLI:
+
+```powershell
+app\.venv\Scripts\python.exe app\assistant.py --dry-run --text "сверни все окна"
 ```
 
 ### search_files
@@ -300,6 +355,8 @@ app\.venv\Scripts\python.exe app\assistant.py --dry-run --text "отмена"
 - Модель выбирает только action из `safe_actions`.
 - Удаление файлов не реализовано.
 - Массовые перемещения идут через план и подтверждение.
+- Сон и перезагрузка требуют подтверждения.
+- Громкость меняется через `pycaw`, медиакоманды через Windows APPCOMMAND.
 - Dry-run планы помечаются и не могут быть случайно выполнены в реальном режиме.
 
 ## Как добавлять новые команды
