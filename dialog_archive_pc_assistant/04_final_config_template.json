@@ -1,0 +1,73 @@
+{
+  "vosk_model_path": "C:\\Assistant\\models\\vosk-ru",
+  "ollama_model": "qwen3:8b",
+
+  "wake_phrases": [
+    "компьютер",
+    "ассистент",
+    "джарвис"
+  ],
+
+  "project_roots": [
+    "C:\\Projects",
+    "C:\\Work",
+    "C:\\AI"
+  ],
+
+  "folder_aliases": {
+    "загрузки": "D:\\Downloads",
+    "игры": "D:\\Games",
+    "архив": "E:\\Archive",
+    "проекты": "C:\\Projects",
+    "работа": "C:\\Work",
+    "ии": "C:\\AI",
+    "модели": "C:\\AI",
+    "отчёты": "C:\\Assistant\\reports"
+  },
+
+  "apps": {
+    "vscode": "code",
+    "код": "code",
+    "visual studio code": "code",
+    "steam": "steam://open/main",
+    "браузер": "msedge",
+    "edge": "msedge",
+    "chrome": "chrome",
+    "obsidian": "obsidian"
+  },
+
+  "voice": {
+    "enabled": true,
+    "rate": 185,
+    "volume": 1.0
+  },
+
+  "confirmation": {
+    "yes_phrases": [
+      "да",
+      "подтверждаю",
+      "выполняй",
+      "согласен",
+      "разрешаю",
+      "окей"
+    ],
+    "no_phrases": [
+      "нет",
+      "отмена",
+      "отмени",
+      "не надо",
+      "стоп"
+    ]
+  },
+
+  "safe_actions": [
+    "open_project",
+    "open_folder",
+    "open_app",
+    "search_files",
+    "disk_report",
+    "prepare_sort_downloads",
+    "confirm_sort_downloads",
+    "cancel"
+  ]
+}

@@ -1,0 +1,187 @@
+{
+  "wake_phrases": [
+  "компьютер",
+  "ассистент",
+  "джарвис"
+  ],
+
+  "vosk_model_path": "C:\\Assistant\\models\\vosk-ru",
+  "ollama_model": "qwen3:8b",
+
+  "project_roots": [
+    "C:\\Projects",
+    "C:\\Work",
+    "C:\\AI"
+  ],
+
+  "folder_aliases": {
+    "загрузки": "E:\\Downloads",
+    "игры": "E:\\Games",
+    "архив": "D:\\Archive",
+    "проекты": "C:\\Projects",
+    "работа": "C:\\Work",
+    "ии": "C:\\AI",
+    "модели": "C:\\AI",
+    "временное": "E:\\Temp",
+    "экспорты": "E:\\Exports",
+    "бэкапы": "D:\\Backups",
+    "медиа": "D:\\Media",
+    "отчёты": "C:\\Assistant\\reports"
+  },
+
+  "apps": {
+    "vscode": "code",
+    "код": "code",
+    "visual studio code": "code",
+    "steam": "steam://open/main",
+    "браузер": "msedge",
+    "edge": "msedge",
+    "chrome": "chrome",
+    "obsidian": "obsidian"
+  },
+
+  "voice": {
+    "enabled": true,
+    "rate": 185,
+    "volume": 1.0
+  },
+
+  "confirmation": {
+    "yes_phrases": [
+      "да",
+      "подтверждаю",
+      "выполняй",
+      "согласен",
+      "разрешаю",
+      "окей"
+    ],
+    "no_phrases": [
+      "нет",
+      "отмена",
+      "отмени",
+      "не надо",
+      "стоп"
+    ]
+  },
+
+  "safe_actions": [
+    "open_project",
+    "open_folder",
+    "open_app",
+    "search_files",
+    "disk_report",
+    "storage_audit",
+    "open_note",
+    "append_inbox",
+    "refresh_obsidian_inventory",
+    "create_note",
+    "obsidian_review",
+    "set_project_alias",
+    "prepare_sort_downloads",
+    "confirm_sort_downloads",
+    "cancel"
+  ],
+
+  "dangerous_actions": [
+    "confirm_sort_downloads"
+  ],
+
+  "pending_action_ttl_seconds": 900,
+
+  "storage_policy": {
+    "drives": {
+      "C": "SSD 1TB: system, programs, active projects, AI, knowledge",
+      "D": "HDD: archive, backups, media, old projects",
+      "E": "SSD: games, downloads, temp, exports, active media"
+    },
+    "required_dirs": [
+      "C:\\Projects",
+      "C:\\Work",
+      "C:\\AI",
+      "C:\\Knowledge",
+      "D:\\Archive",
+      "D:\\Backups",
+      "D:\\Media",
+      "E:\\Downloads",
+      "E:\\Games",
+      "E:\\Temp",
+      "E:\\Exports"
+    ],
+    "expected_aliases": {
+      "загрузки": "E:\\Downloads",
+      "игры": "E:\\Games",
+      "архив": "D:\\Archive",
+      "бэкапы": "D:\\Backups",
+      "медиа": "D:\\Media",
+      "временное": "E:\\Temp",
+      "экспорты": "E:\\Exports"
+    }
+  },
+
+  "disk_report_roots": [
+    "C:\\",
+    "D:\\",
+    "E:\\"
+  ],
+
+  "disk_report_top": 50,
+
+  "disk_report_exclude_dirs": [
+    "C:\\Windows",
+    "C:\\Program Files",
+    "C:\\Program Files (x86)",
+    "node_modules",
+    ".git",
+    ".venv",
+    "venv",
+    "__pycache__"
+  ],
+
+  "search_max_results": 15,
+
+  "obsidian": {
+    "vault_path": "C:\\Knowledge\\Brain",
+    "inbox_path": "C:\\Knowledge\\Brain\\00_INBOX\\Inbox.md",
+    "inventory_note_path": "C:\\Knowledge\\Brain\\07_PC\\Disks\\Кандидаты для Obsidian.md",
+    "inventory_csv_path": "C:\\Assistant\\reports\\obsidian_candidates.csv",
+    "project_notes_dir": "C:\\Knowledge\\Brain\\02_PROJECTS",
+    "software_notes_dir": "C:\\Knowledge\\Brain\\07_PC\\Software",
+    "folder_notes_dir": "C:\\Knowledge\\Brain\\07_PC\\Folders",
+    "review_dir": "C:\\Knowledge\\Brain\\01_DASHBOARDS",
+    "auto_project_notes": true,
+    "exclude_top_dirs": [
+      "Windows",
+      "Program Files",
+      "Program Files (x86)",
+      "ProgramData",
+      "Users",
+      "$Recycle.Bin",
+      "System Volume Information",
+      "Recovery",
+      "Documents and Settings",
+      "node_modules",
+      ".venv",
+      "venv",
+      "__pycache__"
+    ]
+  },
+
+  "project_aliases": {},
+
+  "project_scan": {
+    "max_depth": 2,
+    "max_candidates_for_llm": 80,
+    "cache_ttl_seconds": 600,
+    "markers": [
+      ".git",
+      "README.md",
+      "readme.md",
+      "package.json",
+      "pyproject.toml",
+      "requirements.txt",
+      "Cargo.toml",
+      "go.mod",
+      ".code-workspace"
+    ]
+  }
+}

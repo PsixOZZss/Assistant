@@ -1,0 +1,13 @@
+{
+  "action": "sort_downloads",
+  "created_at": "2026-05-28T20:39:43",
+  "downloads": "E:\\Downloads",
+  "moves": [
+    {
+      "source": "E:\\Downloads\\desktop.ini",
+      "target": "E:\\Downloads\\_To_Sort\\desktop.ini",
+      "category": "_To_Sort"
+    }
+  ],
+  "dry_run": true
+}
