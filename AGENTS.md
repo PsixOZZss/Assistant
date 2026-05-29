@@ -114,6 +114,9 @@ gh pr create --base main --head test --title "Update assistant" --body "See summ
 - project index, fuzzy-поиск проектов, project aliases;
 - Obsidian-функции: заметки, inbox, review, inventory;
 - dry-run и текстовый CLI-режим;
+- диагностика окружения `--doctor`;
+- команда `assistant_status`;
+- системный слой в `app/system_control.py`;
 - базовые unit-тесты для NLU/helpers.
 
 ## Roadmap
@@ -123,7 +126,8 @@ gh pr create --base main --head test --title "Update assistant" --body "See summ
 - Зафиксировать имена двух ПК и ожидаемые ветки.
 - Привести `start_assistant.bat` и пути запуска к выбранной схеме: `C:\Assistant` на основном ПК, репозиторий/анализ на тестовом ПК.
 - Проверить `requirements.txt` на основном ПК и установить стек: `openwakeword`, `vosk`, `sounddevice`, `requests`, `rapidfuzz`, `pyttsx3`.
-- Добавить режим диагностики окружения, который отдельно показывает: Python, зависимости, Vosk model path, Ollama API, `code`, `es.exe`, микрофон.
+- Поддерживать `CHANGELOG.md` для заметных изменений.
+- Поддерживать `--doctor`, который отдельно показывает: Python, зависимости, Vosk model path, Ollama API, `code`, `es.exe`, микрофон.
 
 ### MVP На Основном ПК
 

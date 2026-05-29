@@ -40,12 +40,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-import requests
-import sounddevice as sd
-from vosk import KaldiRecognizer, Model
-
 from actions import AssistantActions
 from config_store import load_config, save_config
+from default_config import DEFAULT_CONFIG
+from doctor import print_doctor_report, run_doctor
 from nlu import call_ollama_for_intent
 from paths import (
     CONFIG_PATH,
@@ -63,7 +61,7 @@ from speech import Speech
 # ============================================================
 
 CONFIG: Dict[str, Any] = {}
-VOSK_MODEL: Optional[Model] = None
+VOSK_MODEL: Optional[Any] = None
 DRY_RUN: bool = False
 SPEECH: Optional[Speech] = None
 ACTIONS: Optional[AssistantActions] = None
@@ -103,7 +101,9 @@ def speak(text: str) -> None:
 # VOSK: РАСПОЗНАВАНИЕ РЕЧИ
 # ============================================================
 
-def load_vosk_model() -> Model:
+def load_vosk_model() -> Any:
+    from vosk import Model
+
     model_path = Path(normalize_path(CONFIG["vosk_model_path"]))
 
     if not model_path.exists():
@@ -118,6 +118,9 @@ def load_vosk_model() -> Model:
 
 def listen_text_vosk(seconds: int = 7) -> str:
     """Слушает речь N секунд и возвращает распознанный текст."""
+    import sounddevice as sd
+    from vosk import KaldiRecognizer
+
     if VOSK_MODEL is None:
         raise RuntimeError("VOSK_MODEL не загружена")
 
@@ -179,6 +182,9 @@ def wait_for_wake_phrase() -> None:
 
 def wait_for_wake_phrase_vosk() -> None:
     """Постоянно слушает микрофон через Vosk и возвращается, когда услышит wake phrase."""
+    import sounddevice as sd
+    from vosk import KaldiRecognizer
+
     if VOSK_MODEL is None:
         raise RuntimeError("VOSK_MODEL не загружена")
 
@@ -223,6 +229,7 @@ def wait_for_wake_word_openwakeword() -> None:
     """Постоянно слушает микрофон через openWakeWord и возвращается при wake word."""
     try:
         import numpy as np
+        import sounddevice as sd
         from openwakeword.model import Model as WakeWordModel
     except Exception as exc:
         raise RuntimeError(
@@ -396,6 +403,15 @@ def route_intent(intent: Dict[str, Any]) -> None:
     elif action == "volume_down":
         ACTIONS.change_volume(direction="down", amount_text=query)
 
+    elif action == "volume_set":
+        ACTIONS.set_volume(amount_text=query)
+
+    elif action == "volume_mute":
+        ACTIONS.set_mute(True)
+
+    elif action == "volume_unmute":
+        ACTIONS.set_mute(False)
+
     elif action == "media_pause":
         ACTIONS.send_media_key("pause")
 
@@ -419,6 +435,9 @@ def route_intent(intent: Dict[str, Any]) -> None:
 
     elif action == "minimize_windows":
         ACTIONS.minimize_windows()
+
+    elif action == "assistant_status":
+        ACTIONS.assistant_status()
 
     elif action == "search_files":
         ACTIONS.search_files(query=query)
@@ -481,6 +500,8 @@ def print_startup_info() -> None:
 
 
 def check_ollama_available() -> bool:
+    import requests
+
     base_url = CONFIG.get("ollama_base_url", "http://localhost:11434").rstrip("/")
     try:
         response = requests.get(f"{base_url}/api/tags", timeout=5)
@@ -530,7 +551,23 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--dry-run", action="store_true", help="Показать намерение и планы без запуска программ и переноса файлов.")
     parser.add_argument("--refresh-project-index", action="store_true", help="Пересканировать проекты и обновить кэш.")
     parser.add_argument("--download-wake-models", action="store_true", help="Скачать предобученные модели openWakeWord для офлайн-работы.")
+    parser.add_argument("--doctor", action="store_true", help="Проверить окружение без запуска голосового цикла.")
     return parser.parse_args()
+
+
+def load_config_for_doctor() -> Dict[str, Any]:
+    local_config = Path(__file__).resolve().parents[1] / "config" / "config.json"
+    if local_config.exists():
+        try:
+            with local_config.open("r", encoding="utf-8") as f:
+                user_config = json.load(f)
+            merged = dict(DEFAULT_CONFIG)
+            for key, value in user_config.items():
+                merged[key] = value
+            return merged
+        except Exception as exc:
+            print("[DOCTOR CONFIG ERROR]", exc)
+    return dict(DEFAULT_CONFIG)
 
 
 def run_text_command(text: str) -> None:
@@ -543,6 +580,11 @@ def main() -> None:
 
     args = parse_args()
     DRY_RUN = bool(args.dry_run)
+
+    if args.doctor and not args.text and not args.refresh_project_index and not args.download_wake_models:
+        CONFIG = load_config_for_doctor()
+        print_doctor_report(run_doctor(CONFIG))
+        return
 
     CONFIG = load_config()
     SPEECH = Speech(CONFIG, log_event, dry_run=DRY_RUN)
@@ -558,6 +600,11 @@ def main() -> None:
         save_config=save_config,
     )
     print_startup_info()
+
+    if args.doctor:
+        print_doctor_report(run_doctor(CONFIG))
+        if not args.text and not args.refresh_project_index and not args.download_wake_models:
+            return
 
     if args.download_wake_models:
         download_openwakeword_models()

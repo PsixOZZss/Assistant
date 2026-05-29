@@ -2,8 +2,6 @@ import json
 import re
 from typing import Any, Callable, Dict, List, Optional
 
-import requests
-
 from default_config import DEFAULT_CONFIG
 
 LogEvent = Callable[[str, Dict[str, Any]], None]
@@ -49,6 +47,8 @@ def ollama_chat_json(
     }
 
     try:
+        import requests
+
         response = requests.post(f"{base_url}/api/chat", json=payload, timeout=timeout)
         response.raise_for_status()
         data = response.json()
@@ -70,10 +70,25 @@ def fallback_intent_parse(text: str) -> Dict[str, Any]:
     if any(word in t for word in ["отмена", "отмени", "не надо"]):
         return {"action": "cancel", "query": "", "app": "", "needs_confirmation": False, "reason": "fallback cancel"}
 
-    if any(phrase in t for phrase in ["громче", "увеличь громкость", "прибавь громкость", "сделай громче"]):
+    if any(phrase in t for phrase in ["выключи звук", "без звука", "mute", "замьюти"]):
+        return {"action": "volume_mute", "query": "", "app": "", "needs_confirmation": False, "reason": "fallback mute"}
+
+    if any(phrase in t for phrase in ["включи звук", "верни звук", "unmute", "размьюти"]):
+        return {"action": "volume_unmute", "query": "", "app": "", "needs_confirmation": False, "reason": "fallback unmute"}
+
+    if any(phrase in t for phrase in ["на максимум", "громкость максимум", "звук максимум"]):
+        return {"action": "volume_set", "query": "100", "app": "", "needs_confirmation": False, "reason": "fallback volume max"}
+
+    if any(phrase in t for phrase in ["на половину", "на половине", "громкость половина", "звук половина"]):
+        return {"action": "volume_set", "query": "50", "app": "", "needs_confirmation": False, "reason": "fallback volume half"}
+
+    if any(phrase in t for phrase in ["громкость на", "звук на", "поставь громкость", "установи громкость"]):
+        return {"action": "volume_set", "query": amount, "app": "", "needs_confirmation": False, "reason": "fallback volume set"}
+
+    if any(phrase in t for phrase in ["громче", "увеличь громкость", "прибавь громкость", "прибавь", "сделай громче"]):
         return {"action": "volume_up", "query": amount, "app": "", "needs_confirmation": False, "reason": "fallback volume up"}
 
-    if any(phrase in t for phrase in ["тише", "уменьши громкость", "убавь громкость", "сделай тише"]):
+    if any(phrase in t for phrase in ["тише", "уменьши громкость", "убавь громкость", "убавь", "сделай тише", "сделай потише"]):
         return {"action": "volume_down", "query": amount, "app": "", "needs_confirmation": False, "reason": "fallback volume down"}
 
     if any(phrase in t for phrase in ["пауза", "поставь на паузу", "останови воспроизведение", "стоп"]):
@@ -99,6 +114,9 @@ def fallback_intent_parse(text: str) -> Dict[str, Any]:
 
     if any(phrase in t for phrase in ["сверни все окна", "свернуть все окна", "покажи рабочий стол", "рабочий стол"]):
         return {"action": "minimize_windows", "query": "", "app": "", "needs_confirmation": False, "reason": "fallback minimize windows"}
+
+    if any(phrase in t for phrase in ["статус ассистента", "что с ассистентом", "проверь ассистента", "состояние ассистента"]):
+        return {"action": "assistant_status", "query": "", "app": "", "needs_confirmation": False, "reason": "fallback assistant status"}
 
     if "подтверж" in t and "сорт" in t:
         return {"action": "confirm_sort_downloads", "query": "загрузки", "app": "", "needs_confirmation": True, "reason": "fallback confirm sort"}
@@ -200,6 +218,9 @@ def call_ollama_for_intent(config: Dict[str, Any], text: str, log_event: LogEven
 - open_app: открыть программу. query = название программы, например steam, браузер, obsidian, vscode.
 - volume_up: увеличить громкость. query = число процентов, по умолчанию 10.
 - volume_down: уменьшить громкость. query = число процентов, по умолчанию 10.
+- volume_set: установить громкость на процент. query = число 0-100.
+- volume_mute: выключить звук.
+- volume_unmute: включить звук.
 - media_pause: пауза или стоп воспроизведения.
 - media_play: продолжить воспроизведение.
 - media_next: следующий клип, видос или трек.
@@ -208,6 +229,7 @@ def call_ollama_for_intent(config: Dict[str, Any], text: str, log_event: LogEven
 - pc_restart: перезагрузить ПК. needs_confirmation=true.
 - pc_lock: заблокировать ПК.
 - minimize_windows: свернуть все окна.
+- assistant_status: показать и озвучить краткий статус ассистента.
 - search_files: найти файлы. query = что искать.
 - disk_report: показать, что занимает место на диске.
 - storage_audit: проверить структуру хранения, роли дисков, алиасы папок и обязательные папки.
@@ -245,6 +267,15 @@ JSON: {"action":"volume_up","query":"10","app":"","needs_confirmation":false,"re
 Фраза: "тише на 25"
 JSON: {"action":"volume_down","query":"25","app":"","needs_confirmation":false,"reason":"пользователь хочет уменьшить громкость на 25 процентов"}
 
+Фраза: "громкость на 50"
+JSON: {"action":"volume_set","query":"50","app":"","needs_confirmation":false,"reason":"пользователь хочет установить громкость"}
+
+Фраза: "выключи звук"
+JSON: {"action":"volume_mute","query":"","app":"","needs_confirmation":false,"reason":"пользователь хочет выключить звук"}
+
+Фраза: "включи звук"
+JSON: {"action":"volume_unmute","query":"","app":"","needs_confirmation":false,"reason":"пользователь хочет включить звук"}
+
 Фраза: "пауза"
 JSON: {"action":"media_pause","query":"","app":"","needs_confirmation":false,"reason":"пользователь хочет поставить воспроизведение на паузу"}
 
@@ -256,6 +287,9 @@ JSON: {"action":"pc_lock","query":"","app":"","needs_confirmation":false,"reason
 
 Фраза: "перезагрузи компьютер"
 JSON: {"action":"pc_restart","query":"","app":"","needs_confirmation":true,"reason":"перезагрузка требует подтверждения"}
+
+Фраза: "статус ассистента"
+JSON: {"action":"assistant_status","query":"","app":"","needs_confirmation":false,"reason":"пользователь хочет узнать статус ассистента"}
 
 Фраза: "разбери загрузки"
 JSON: {"action":"prepare_sort_downloads","query":"загрузки","app":"","needs_confirmation":true,"reason":"сначала нужен безопасный план сортировки"}

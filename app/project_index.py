@@ -5,7 +5,25 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from rapidfuzz import fuzz, process
+try:
+    from rapidfuzz import fuzz, process
+except Exception:
+    from difflib import SequenceMatcher
+
+    class _FallbackFuzz:
+        @staticmethod
+        def WRatio(left: str, right: str) -> float:
+            return SequenceMatcher(None, left.lower(), right.lower()).ratio() * 100
+
+    class _FallbackProcess:
+        @staticmethod
+        def extract(query: str, choices: List[str], scorer: Any, limit: int = 10) -> List[Tuple[str, float, int]]:
+            matches = [(choice, float(scorer(query, choice)), idx) for idx, choice in enumerate(choices)]
+            matches.sort(key=lambda item: item[1], reverse=True)
+            return matches[:limit]
+
+    fuzz = _FallbackFuzz()
+    process = _FallbackProcess()
 
 from paths import PROJECT_INDEX_PATH, TEMP_DIR
 

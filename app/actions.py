@@ -1,7 +1,5 @@
 import os
 import csv
-import ctypes
-import re
 import shutil
 import subprocess
 from datetime import datetime
@@ -9,12 +7,32 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 from urllib.parse import quote
 
-from rapidfuzz import fuzz
+try:
+    from rapidfuzz import fuzz
+except Exception:
+    from difflib import SequenceMatcher
+
+    class _FallbackFuzz:
+        @staticmethod
+        def WRatio(left: str, right: str) -> float:
+            return SequenceMatcher(None, left.lower(), right.lower()).ratio() * 100
+
+    fuzz = _FallbackFuzz()
 
 from launcher import open_in_explorer, open_in_notepad, run_command
 from nlu import ollama_chat_json
 from paths import REPORTS_DIR
 from project_index import ProjectItem, fuzzy_project_candidates, scan_projects
+from system_control import (
+    change_volume,
+    minimize_windows,
+    pc_lock,
+    pc_restart,
+    pc_sleep,
+    send_media_key,
+    set_mute,
+    set_volume,
+)
 
 Speak = Callable[[str], None]
 LogEvent = Callable[[str, Dict[str, Any]], None]
@@ -56,13 +74,6 @@ def safe_note_filename(name: str) -> str:
     return cleaned or "Untitled"
 
 
-def first_int(text: str, default: int = 10) -> int:
-    match = re.search(r"\d+", text or "")
-    if not match:
-        return default
-    return max(0, min(100, int(match.group(0))))
-
-
 class AssistantActions:
     def __init__(
         self,
@@ -87,64 +98,33 @@ class AssistantActions:
         self.save_config = save_config
 
     def change_volume(self, direction: str, amount_text: str = "") -> None:
-        amount = first_int(amount_text, default=10)
-        direction = (direction or "").lower().strip()
-        if direction not in ["up", "down"]:
-            self.speak("Не понял, громкость нужно увеличить или уменьшить.")
-            return
-
-        if self.dry_run:
-            self.speak(f"Dry-run: изменил бы громкость на {amount} процентов.")
-            return
-
         try:
-            from ctypes import POINTER, cast
-
-            from comtypes import CLSCTX_ALL
-            from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
-
-            devices = AudioUtilities.GetSpeakers()
-            interface = devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
-            volume = cast(interface, POINTER(IAudioEndpointVolume))
-            current = float(volume.GetMasterVolumeLevelScalar())
-            delta = amount / 100
-            target = current + delta if direction == "up" else current - delta
-            target = max(0.0, min(1.0, target))
-            volume.SetMasterVolumeLevelScalar(target, None)
-            percent = round(target * 100)
-            self.speak(f"Громкость {percent} процентов.")
+            percent = change_volume(direction, amount_text, self.dry_run, self.speak)
+            amount = percent if percent is not None else amount_text
             self.log_event("volume_change", {"direction": direction, "amount": amount, "target": percent})
         except Exception as exc:
             self.speak("Не получилось изменить громкость. Проверь, установлен ли pycaw.")
             print("[VOLUME ERROR]", exc)
 
-    def send_media_key(self, key: str) -> None:
-        app_commands = {
-            "pause": 47,
-            "play": 46,
-            "next": 11,
-            "previous": 12,
-        }
-        key = (key or "").lower().strip()
-        command = app_commands.get(key)
-        if command is None:
-            self.speak("Не понял медиакоманду.")
-            return
-
-        if self.dry_run:
-            self.speak(f"Dry-run: нажал бы медиаклавишу {key}.")
-            return
-
+    def set_volume(self, amount_text: str) -> None:
         try:
-            user32 = ctypes.windll.user32
-            user32.SendMessageW(0xFFFF, 0x0319, 0, command << 16)
-            labels = {
-                "pause": "Пауза.",
-                "play": "Продолжаю.",
-                "next": "Следующий.",
-                "previous": "Назад.",
-            }
-            self.speak(labels.get(key, "Готово."))
+            amount = set_volume(amount_text, self.dry_run, self.speak)
+            self.log_event("volume_set", {"target": amount})
+        except Exception as exc:
+            self.speak("Не получилось установить громкость. Проверь, установлен ли pycaw.")
+            print("[VOLUME SET ERROR]", exc)
+
+    def set_mute(self, muted: bool) -> None:
+        try:
+            set_mute(muted, self.dry_run, self.speak)
+            self.log_event("volume_mute", {"muted": muted})
+        except Exception as exc:
+            self.speak("Не получилось переключить звук. Проверь, установлен ли pycaw.")
+            print("[VOLUME MUTE ERROR]", exc)
+
+    def send_media_key(self, key: str) -> None:
+        try:
+            send_media_key(key, self.dry_run, self.speak)
             self.log_event("media_key", {"key": key})
         except Exception as exc:
             self.speak("Не получилось отправить медиаклавишу.")
@@ -157,7 +137,7 @@ class AssistantActions:
         if not self.ask_voice_confirmation("Я собираюсь отправить компьютер в сон. Подтвердить?"):
             return
         try:
-            subprocess.Popen(["rundll32.exe", "powrprof.dll,SetSuspendState", "0,1,0"])
+            pc_sleep()
             self.log_event("pc_sleep", {})
         except Exception as exc:
             self.speak("Не получилось отправить компьютер в сон.")
@@ -170,7 +150,7 @@ class AssistantActions:
         if not self.ask_voice_confirmation("Я собираюсь перезагрузить компьютер. Подтвердить?"):
             return
         try:
-            subprocess.Popen(["shutdown", "/r", "/t", "0"])
+            pc_restart()
             self.log_event("pc_restart", {})
         except Exception as exc:
             self.speak("Не получилось перезагрузить компьютер.")
@@ -181,7 +161,7 @@ class AssistantActions:
             self.speak("Dry-run: заблокировал бы компьютер.")
             return
         try:
-            ctypes.windll.user32.LockWorkStation()
+            pc_lock()
             self.log_event("pc_lock", {})
         except Exception as exc:
             self.speak("Не получилось заблокировать компьютер.")
@@ -192,16 +172,34 @@ class AssistantActions:
             self.speak("Dry-run: свернул бы все окна.")
             return
         try:
-            subprocess.Popen(
-                ["powershell", "-NoProfile", "-Command", "(New-Object -ComObject Shell.Application).MinimizeAll()"],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
+            minimize_windows()
             self.speak("Свернул все окна.")
             self.log_event("minimize_windows", {})
         except Exception as exc:
             self.speak("Не получилось свернуть окна.")
             print("[MINIMIZE WINDOWS ERROR]", exc)
+
+    def assistant_status(self) -> None:
+        pending = self.get_pending_action()
+        projects = scan_projects(self.config)
+        ollama_url = str(self.config.get("ollama_base_url", "http://localhost:11434")).rstrip("/")
+        wake_engine = self.config.get("wake_engine", "openwakeword")
+        summary = (
+            f"Статус ассистента. Wake engine: {wake_engine}. "
+            f"Модель Ollama: {self.config.get('ollama_model', 'unknown')}. "
+            f"Проектов в индексе: {len(projects)}. "
+            f"Ожидающее действие: {'есть' if pending else 'нет'}."
+        )
+        print("\nASSISTANT STATUS")
+        print("=" * 70)
+        print(f"wake_engine: {wake_engine}")
+        print(f"ollama: {ollama_url} | model={self.config.get('ollama_model', 'unknown')}")
+        print(f"projects: {len(projects)}")
+        print(f"pending_action: {'yes' if pending else 'no'}")
+        print(f"voice_enabled: {self.config.get('voice', {}).get('enabled', True)}")
+        print("=" * 70)
+        self.speak(summary)
+        self.log_event("assistant_status", {"projects": len(projects), "pending": bool(pending)})
 
     def note_dir_for_type(self, note_type: str) -> Path:
         obsidian = self.obsidian_config()

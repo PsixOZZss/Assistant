@@ -32,6 +32,15 @@ class NluFallbackTests(unittest.TestCase):
         self.assertEqual(intent["action"], "volume_down")
         self.assertEqual(intent["query"], "25")
 
+    def test_volume_set(self) -> None:
+        intent = fallback_intent_parse("громкость на 50")
+        self.assertEqual(intent["action"], "volume_set")
+        self.assertEqual(intent["query"], "50")
+
+    def test_volume_mute(self) -> None:
+        intent = fallback_intent_parse("выключи звук")
+        self.assertEqual(intent["action"], "volume_mute")
+
     def test_media_next(self) -> None:
         intent = fallback_intent_parse("следующий трек")
         self.assertEqual(intent["action"], "media_next")
@@ -40,6 +49,10 @@ class NluFallbackTests(unittest.TestCase):
         intent = fallback_intent_parse("перезагрузи компьютер")
         self.assertEqual(intent["action"], "pc_restart")
         self.assertTrue(intent["needs_confirmation"])
+
+    def test_assistant_status(self) -> None:
+        intent = fallback_intent_parse("статус ассистента")
+        self.assertEqual(intent["action"], "assistant_status")
 
 
 if __name__ == "__main__":
