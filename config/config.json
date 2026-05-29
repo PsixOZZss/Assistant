@@ -7,6 +7,15 @@
 
   "vosk_model_path": "C:\\Assistant\\models\\vosk-ru",
   "ollama_model": "qwen3:8b",
+  "wake_engine": "openwakeword",
+  "openwakeword": {
+    "models": [
+      "hey jarvis"
+    ],
+    "threshold": 0.5,
+    "frame_ms": 80,
+    "vad_threshold": null
+  },
 
   "project_roots": [
     "C:\\Projects",

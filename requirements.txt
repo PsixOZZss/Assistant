@@ -1,0 +1,6 @@
+vosk
+sounddevice
+requests
+rapidfuzz
+pyttsx3
+openwakeword

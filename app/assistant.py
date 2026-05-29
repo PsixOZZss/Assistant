@@ -2,7 +2,8 @@
 Локальный бесплатный офлайн-ассистент для Windows.
 
 Стек:
-- Vosk: wake phrase + распознавание команды офлайн
+- openWakeWord или Vosk: wake word / wake phrase офлайн
+- Vosk: распознавание команды офлайн
 - Ollama + qwen3:8b: понимание команды и перевод в JSON
 - Python router: безопасное выполнение только разрешённых действий
 - pyttsx3: локальная озвучка ответов
@@ -11,7 +12,7 @@
 - PowerShell: отчёты по диску
 
 Что умеет:
-- "компьютер" / "ассистент" / "джарвис" → проснуться
+- "hey jarvis" через openWakeWord или Vosk wake phrases → проснуться
 - "открой проект ..." → найти проект и открыть через VS Code
 - "открой загрузки / игры / архив / проекты" → открыть папку
 - "запусти Steam / браузер / VS Code / Obsidian" → открыть программу
@@ -168,7 +169,16 @@ def text_has_wake_phrase(text: str) -> bool:
 
 
 def wait_for_wake_phrase() -> None:
-    """Постоянно слушает микрофон и возвращается, когда услышит wake phrase."""
+    wake_engine = str(CONFIG.get("wake_engine", "openwakeword")).lower().strip()
+    if wake_engine == "openwakeword":
+        wait_for_wake_word_openwakeword()
+        return
+
+    wait_for_wake_phrase_vosk()
+
+
+def wait_for_wake_phrase_vosk() -> None:
+    """Постоянно слушает микрофон через Vosk и возвращается, когда услышит wake phrase."""
     if VOSK_MODEL is None:
         raise RuntimeError("VOSK_MODEL не загружена")
 
@@ -206,6 +216,58 @@ def wait_for_wake_phrase() -> None:
                 if partial and text_has_wake_phrase(partial):
                     print(f"[WAKE PARTIAL]: {partial}")
                     log_event("wake_detected", {"text": partial})
+                    return
+
+
+def wait_for_wake_word_openwakeword() -> None:
+    """Постоянно слушает микрофон через openWakeWord и возвращается при wake word."""
+    try:
+        import numpy as np
+        from openwakeword.model import Model as WakeWordModel
+    except Exception as exc:
+        raise RuntimeError(
+            "openWakeWord недоступен. Установи зависимость: pip install openwakeword "
+            "или переключи config wake_engine на 'vosk'."
+        ) from exc
+
+    openwakeword_config = CONFIG.get("openwakeword", {})
+    models = openwakeword_config.get("models", ["hey jarvis"])
+    threshold = float(openwakeword_config.get("threshold", 0.5))
+    frame_ms = int(openwakeword_config.get("frame_ms", 80))
+    vad_threshold = openwakeword_config.get("vad_threshold")
+    blocksize = max(1, int(SAMPLE_RATE * frame_ms / 1000))
+
+    model_kwargs: Dict[str, Any] = {"wakeword_models": models}
+    if vad_threshold is not None:
+        model_kwargs["vad_threshold"] = float(vad_threshold)
+
+    print(f"[WAKE] openWakeWord models: {', '.join(models)} | threshold={threshold}")
+    wake_model = WakeWordModel(**model_kwargs)
+
+    audio_queue: queue.Queue[bytes] = queue.Queue()
+
+    def callback(indata: bytes, frames: int, time_info: Any, status: Any) -> None:
+        if status:
+            print("[AUDIO STATUS]", status)
+        audio_queue.put(bytes(indata))
+
+    with sd.RawInputStream(
+        samplerate=SAMPLE_RATE,
+        blocksize=blocksize,
+        dtype="int16",
+        channels=1,
+        callback=callback
+    ):
+        while True:
+            data = audio_queue.get()
+            frame = np.frombuffer(data, dtype=np.int16)
+            predictions = wake_model.predict(frame)
+
+            for name, score in predictions.items():
+                score_float = float(score)
+                if score_float >= threshold:
+                    print(f"[WAKE OPENWAKEWORD]: {name} score={score_float:.3f}")
+                    log_event("wake_detected", {"engine": "openwakeword", "model": name, "score": score_float})
                     return
 
 
@@ -380,6 +442,7 @@ def print_startup_info() -> None:
     print(f"Config: {CONFIG_PATH}")
     print(f"Vosk model: {CONFIG.get('vosk_model_path')}")
     print(f"Ollama: {CONFIG.get('ollama_base_url')} | model: {CONFIG.get('ollama_model')}")
+    print(f"Wake engine: {CONFIG.get('wake_engine', 'openwakeword')}")
     print(f"Wake phrases: {', '.join(CONFIG.get('wake_phrases', []))}")
     print("Project roots:")
     for root in CONFIG.get("project_roots", []):
@@ -416,6 +479,17 @@ def check_external_tools() -> None:
         print("[CHECK] Запусти Ollama и скачай модель: ollama pull qwen3:8b")
 
 
+def download_openwakeword_models() -> None:
+    try:
+        from openwakeword import utils as openwakeword_utils
+    except Exception as exc:
+        raise RuntimeError("openWakeWord не установлен. Установи зависимости из requirements.txt.") from exc
+
+    print("[OPENWAKEWORD] Скачиваю/проверяю предобученные модели.")
+    openwakeword_utils.download_models()
+    speak("Модели openWakeWord подготовлены.")
+
+
 # ============================================================
 # MAIN LOOP
 # ============================================================
@@ -425,6 +499,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--text", help="Выполнить одну текстовую команду без микрофона.")
     parser.add_argument("--dry-run", action="store_true", help="Показать намерение и планы без запуска программ и переноса файлов.")
     parser.add_argument("--refresh-project-index", action="store_true", help="Пересканировать проекты и обновить кэш.")
+    parser.add_argument("--download-wake-models", action="store_true", help="Скачать предобученные модели openWakeWord для офлайн-работы.")
     return parser.parse_args()
 
 
@@ -453,6 +528,11 @@ def main() -> None:
         save_config=save_config,
     )
     print_startup_info()
+
+    if args.download_wake_models:
+        download_openwakeword_models()
+        if not args.text and not args.refresh_project_index:
+            return
 
     if args.refresh_project_index:
         projects = scan_projects(CONFIG, force_refresh=True)

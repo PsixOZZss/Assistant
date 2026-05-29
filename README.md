@@ -2,7 +2,7 @@
 
 Локальный офлайн-ассистент для Windows-ПК.
 
-Стек: Vosk, Ollama `qwen3:8b`, Python router, Everything ES, VS Code CLI, PowerShell, pyttsx3.
+Стек: openWakeWord, Vosk, Ollama `qwen3:8b`, Python router, Everything ES, VS Code CLI, PowerShell, pyttsx3.
 
 ## Запуск
 
@@ -25,9 +25,25 @@ app\.venv\Scripts\python.exe app\assistant.py --dry-run --refresh-project-index
 
 ## Голосовой сценарий
 
-1. Скажи wake phrase: `компьютер`, `ассистент` или `джарвис`.
+1. Скажи wake word: `hey jarvis`.
 2. После ответа `Слушаю` скажи команду.
 3. Для опасных действий ассистент сначала готовит план и просит подтверждение.
+
+По умолчанию wake word обрабатывает openWakeWord с английской моделью `hey jarvis`. Vosk остаётся для распознавания самой команды и может использоваться как fallback wake engine через `wake_engine: "vosk"` в `config/config.json`; в этом режиме работают wake phrases `компьютер`, `ассистент` или `джарвис`.
+
+Установка зависимостей:
+
+```powershell
+app\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+Для openWakeWord на основном ПК нужно один раз подготовить/скачать модели при установленном интернете, после чего wake word работает локально. Если нужно полностью уйти в Vosk wake phrase, переключи `wake_engine` на `vosk`.
+
+Подготовить модели openWakeWord:
+
+```powershell
+app\.venv\Scripts\python.exe app\assistant.py --download-wake-models
+```
 
 ## Команды
 

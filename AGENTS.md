@@ -13,14 +13,15 @@
 ## Краткая Выжимка Решений
 
 - Ассистент нужен именно как голосовой диспетчер ПК, а не как полноценный рабочий AI-чат.
-- Схема: Vosk wake phrase -> Vosk command recognition -> Ollama `qwen3:8b` -> Python router -> VS Code / Everything / PowerShell / Explorer -> pyttsx3 response.
+- Схема по умолчанию: openWakeWord `hey jarvis` -> Vosk command recognition -> Ollama `qwen3:8b` -> Python router -> VS Code / Everything / PowerShell / Explorer -> pyttsx3 response.
+- Vosk wake phrase остаётся fallback-режимом через `wake_engine: "vosk"`.
 - Porcupine исключён из стека, потому что для полностью бесплатной офлайн-схемы нежелательны AccessKey, аккаунты и внешние ограничения.
 - Модель не выполняет команды напрямую. Она только возвращает JSON intent из разрешённого списка.
 - Базовые actions: `open_project`, `open_folder`, `open_app`, `search_files`, `disk_report`, `prepare_sort_downloads`, `confirm_sort_downloads`, `cancel`.
 - Потенциально опасные действия идут через план, pending action и голосовое подтверждение.
 - Удаление файлов специально не реализуется.
 - Целевая структура на основном ПК: `C:\Assistant\app`, `config`, `models`, `logs`, `reports`, `temp`.
-- Основной стек зависимостей: `vosk`, `sounddevice`, `requests`, `rapidfuzz`, `pyttsx3`.
+- Основной стек зависимостей: `openwakeword`, `vosk`, `sounddevice`, `requests`, `rapidfuzz`, `pyttsx3`.
 - Диски по текущей политике: `C:` - система, программы, активные проекты, AI, knowledge; `D:` - архив, бэкапы, медиа, старые проекты; `E:` - игры, загрузки, временное, экспорты, активное медиа.
 - Тестовые голосовые сценарии MVP: открыть загрузки, открыть проект ассистента, показать что занимает место, разобрать загрузки, подтвердить сортировку.
 
@@ -118,18 +119,20 @@ gh pr create --base main --head test --title "Update assistant" --body "See summ
 
 - Зафиксировать имена двух ПК и ожидаемые ветки.
 - Привести `start_assistant.bat` и пути запуска к выбранной схеме: `C:\Assistant` на основном ПК, репозиторий/анализ на тестовом ПК.
-- Добавить явный `requirements.txt` или `pyproject.toml` со стеком: `vosk`, `sounddevice`, `requests`, `rapidfuzz`, `pyttsx3`.
+- Проверить `requirements.txt` на основном ПК и установить стек: `openwakeword`, `vosk`, `sounddevice`, `requests`, `rapidfuzz`, `pyttsx3`.
 - Добавить режим диагностики окружения, который отдельно показывает: Python, зависимости, Vosk model path, Ollama API, `code`, `es.exe`, микрофон.
 
 ### MVP На Основном ПК
 
 - Создать/проверить `C:\Assistant`.
 - Создать `.venv` и установить зависимости.
+- Подготовить openWakeWord-модель `hey jarvis` командой `app\.venv\Scripts\python.exe app\assistant.py --download-wake-models`.
 - Скачать Vosk RU модель в `C:\Assistant\models\vosk-ru`.
 - Проверить Ollama и модель `qwen3:8b`.
 - Проверить `code --version`.
 - Проверить `es.exe`.
 - Запустить ассистента голосом.
+- Проверить wake word `hey jarvis`.
 - Проверить команды: `open_folder`, `open_app`, `open_project`, `search_files`, `disk_report`, `prepare_sort_downloads`, `confirm_sort_downloads`.
 
 ### Улучшения
