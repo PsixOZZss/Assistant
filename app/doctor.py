@@ -9,6 +9,8 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List
 
+from wake_config import check_openwakeword_config
+
 
 def normalize_path(path: str) -> str:
     return os.path.abspath(os.path.expanduser(os.path.expandvars(path)))
@@ -87,6 +89,7 @@ def run_doctor(config: Dict[str, Any]) -> List[Dict[str, str]]:
         check_path("assistant root", r"C:\Assistant", "dir"),
         check_path("config", r"C:\Assistant\config\config.json", "file"),
         check_path("vosk model", str(config.get("vosk_model_path", "")), "dir"),
+        check_openwakeword_config(config),
         check_ollama(config),
         check_command("code", ["--version"]),
         check_command("es.exe", ["-n", "1", "*.txt"]),

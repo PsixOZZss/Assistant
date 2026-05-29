@@ -55,6 +55,22 @@ app\.venv\Scripts\python.exe -m pip install -r requirements.txt
 app\.venv\Scripts\python.exe app\assistant.py --download-wake-models
 ```
 
+Настройка чувствительности wake word:
+
+```json
+"openwakeword": {
+  "models": ["hey jarvis"],
+  "threshold": 0.5,
+  "frame_ms": 80,
+  "vad_threshold": null
+}
+```
+
+- `threshold: 0.5` - сбалансированное значение.
+- Если есть ложные срабатывания, подними до `0.6-0.7`.
+- Если ассистент плохо слышит `hey jarvis`, опусти до `0.35-0.45`.
+- `--doctor` показывает текущую оценку настройки: sensitive, balanced или strict.
+
 ## Команды
 
 ### open_project

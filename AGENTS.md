@@ -115,6 +115,7 @@ gh pr create --base main --head test --title "Update assistant" --body "See summ
 - Obsidian-функции: заметки, inbox, review, inventory;
 - dry-run и текстовый CLI-режим;
 - диагностика окружения `--doctor`;
+- настройка openWakeWord через нормализованный `openwakeword.threshold`, с подсказками в `--doctor`;
 - команда `assistant_status`;
 - preview намерения через `intent_preview` для опасных действий и подтверждений;
 - повтор подтверждения через `confirmation.max_attempts`, если голосовой ответ не распознан;

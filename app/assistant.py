@@ -54,6 +54,7 @@ from paths import (
 )
 from project_index import scan_projects
 from speech import Speech
+from wake_config import normalize_openwakeword_config
 
 
 # ============================================================
@@ -237,10 +238,10 @@ def wait_for_wake_word_openwakeword() -> None:
             "или переключи config wake_engine на 'vosk'."
         ) from exc
 
-    openwakeword_config = CONFIG.get("openwakeword", {})
-    models = openwakeword_config.get("models", ["hey jarvis"])
-    threshold = float(openwakeword_config.get("threshold", 0.5))
-    frame_ms = int(openwakeword_config.get("frame_ms", 80))
+    openwakeword_config = normalize_openwakeword_config(CONFIG)
+    models = openwakeword_config["models"]
+    threshold = float(openwakeword_config["threshold"])
+    frame_ms = int(openwakeword_config["frame_ms"])
     vad_threshold = openwakeword_config.get("vad_threshold")
     blocksize = max(1, int(SAMPLE_RATE * frame_ms / 1000))
 
