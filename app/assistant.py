@@ -294,23 +294,42 @@ def is_confirmation_no(text: str) -> bool:
     return any(phrase in text for phrase in phrases)
 
 
+def classify_confirmation_answer(text: str) -> str:
+    normalized = text.lower().strip()
+    if not normalized:
+        return "empty"
+    if is_confirmation_yes(normalized):
+        return "yes"
+    if is_confirmation_no(normalized):
+        return "no"
+    return "unknown"
+
+
 def ask_voice_confirmation(message: str) -> bool:
     seconds = int(CONFIG.get("confirmation_listen_seconds", 5))
+    confirmation_config = CONFIG.get("confirmation", {})
+    max_attempts = max(1, int(confirmation_config.get("max_attempts", 2)))
+    retry_prompt = str(confirmation_config.get("retry_prompt", "Не понял. Повтори: подтверждаю, или: отмена."))
 
     speak(message)
     speak("Скажи: подтверждаю, или скажи: отмена.")
 
-    answer = listen_text_vosk(seconds=seconds)
-    print("[CONFIRMATION ANSWER]", answer)
-    log_event("confirmation_answer", {"answer": answer})
+    for attempt in range(1, max_attempts + 1):
+        answer = listen_text_vosk(seconds=seconds)
+        result = classify_confirmation_answer(answer)
+        print("[CONFIRMATION ANSWER]", answer, "=>", result)
+        log_event("confirmation_answer", {"answer": answer, "result": result, "attempt": attempt})
 
-    if is_confirmation_yes(answer):
-        speak("Подтверждение получено.")
-        return True
+        if result == "yes":
+            speak("Подтверждение получено.")
+            return True
 
-    if is_confirmation_no(answer):
-        speak("Действие отменено.")
-        return False
+        if result == "no":
+            speak("Действие отменено.")
+            return False
+
+        if attempt < max_attempts:
+            speak(retry_prompt)
 
     speak("Я не понял подтверждение. Действие отменено.")
     return False
